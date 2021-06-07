@@ -1,0 +1,4 @@
+Kernel-based Virtual machine(KVM) is different from other hypervisors in the sense that it is kernel module that allows to exploit vitualization capabilities, if hardware virtualization support is available and enabled. For linux kernel 2.6.20 and greater, kvm is included in mainline kernel therefore it is not required to explicitly install these modules, namely loadable kernel modules(LKM) - kvm-intel.ko and kvm-amd.ko.
+The KVM hypervisor requires:
+  i. an Intel processor with the Intel VT-x and Intel 64 virtualization extensions for x86-based systems;
+  ii. or an AMD processor with the AMD-V and the AMD64 virtualization extensions.
