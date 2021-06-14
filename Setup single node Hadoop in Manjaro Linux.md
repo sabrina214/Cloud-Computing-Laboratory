@@ -1,19 +1,23 @@
 <h3>Downloading...</h3>
 
-1. Begin by downloading the latest stable hadoop release from <a href=https://mirrors.estointernet.in/apache/hadoop/common/hadoop-3.3.0/>here</a>. You might also visit <a href=https://www.apache.org/dyn/closer.cgi/hadoop/common/>here</a>
-2. Extract the tar and move it to some location. I decided to place it in `/usr/lib/`. Not a bad place to start with. Also create a symlink to the hadoop-X.Y.Z folder so that later working with different hadoop versions will only require this symlink to be updated without touching any config files and doing things nastily.
+1. Begin by downloading the latest stable hadoop release from <a href=https://mirrors.estointernet.in/apache/hadoop/common/hadoop-3.3.0/>here</a>. You might also visit <a href=https://www.apache.org/dyn/closer.cgi/hadoop/common/>here</a>. As of this writing, hadoop-3.3.0 is the latest stable release.
+2. Extract the tar and move it to some location. I decided to place it in `/usr/lib/`. Not a bad place to start with. Also create a symlink to the hadoop-3.3.0 folder so that later working with different hadoop versions will only require this symlink to be updated without touching any config files and doing things nastily.
  
  ```
- tar xf hadoop-X.Y.Z.tar.gz
- sudo mv hadoop-X.Y.Z /usr/lib
- sudo ln -s /usr/lib/hadoop-X.Y.Z /usr/lib/hadoop
+ tar xf hadoop-3.3.0.tar.gz
+ sudo mv hadoop-3.3.0 /usr/lib
+ sudo ln -s /usr/lib/hadoop-3.3.0 /usr/lib/hadoope
  ```
- 
+<h3>Prerequisites...</h3>
+
+1. Java runtime environment: `sudo apt-get install openjdk-11-jre`
+2. ssh because sshd must be running to use the Hadoop scripts that manage remote Hadoop daemons: `sudo apt-get install openssh-server`
+
 <h3>Creating Hadoop group and adding hadoop user...</h3>
 Although this is optional, but you may also want to create a hadoop group and add specifically add hadoop users to it. DO NOT forget to provide the ownership of the hadoop installation to the hadoop user. If you have already created the symlink than you can use that to refer hadoop folder instead.
 
 ```
 sudo groupadd hadoop
 sudo useradd -m deadpool -g hadoop
-sudo chown deadpool:hadoop hadoop
+sudo chown -R deadpool:hadoop hadoop-3.3.0
 ```
