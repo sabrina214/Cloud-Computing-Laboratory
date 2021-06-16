@@ -28,17 +28,29 @@ Although you can provide password by passing the -p flag while creating the user
  Add the path to the java installation to the end of the shell startup file.
 
  `export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64`
- While you are still in the shell startup file might also add HADOOP_HOME environment variable set to point to your hadoop installation: `export HADOOP_HOME=/usr/lib/hadoop`
+ While you are still in the shell startup file might also add HADOOP_HOME environment variable set to point to your hadoop installation and the append PATH environment variable to include path to hadoop executables: <br>
+ ```
+ export HADOOP_HOME=/usr/lib/hadoop
+ export PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
+ ```
 
  To reload the startup file: `source ~/.bashrc`
  - Verify the javac version: `javac -version`
- - Simply correctly setting the JAVA_HOME environment variable is enough for working in standalone mode of Hadoop. To verify this:
+ - Simply correctly setting the JAVA_HOME environment variable is enough for working in **standalone mode** of Hadoop. To verify this:
 ```
 cd $HADOOP_HOME
 bin/hadoop version
 ```
+or, simply
+```
+hadoop version
+```
+if you have updated `PATH`.<br>
+
 You should see something like this 👇
-![Screenshot_20210615_180151](https://user-images.githubusercontent.com/75603064/122052888-cb8a6300-ce03-11eb-8a37-812b3cb01406.png)
+
+![Screenshot_20210615_220441](https://user-images.githubusercontent.com/75603064/122090757-c1795c00-ce25-11eb-9fcf-173fcc866957.png)
+
 
 2. ssh because sshd must be running to use the Hadoop scripts that manage remote Hadoop daemons: `sudo apt-get install openssh-server`. You need to be able to do passwordless login, generate a new SSH key with an empty passphrase:
 
@@ -49,14 +61,13 @@ cat ~/.ssh/hadoop.pub >> ~/.ssh/authorized_keys
 *Note: You will have to add your private key with the ssh-agent for which ssh-agent should be running*
 
 Quick workaround: `eval $(ssh-agent -s)`<br>
-But this needs to be done with every login session for this user.
+But this needs to be done with every login session for this user.<br>
 Better way: Add following lines to the shell startup file:
 ```
 SSH_ENV="$HOME/.ssh/agent-environment"
 
 function start_agent {
     /usr/bin/ssh-agent | sed 's/^echo/#echo/' > "${SSH_ENV}"
-    echo succeeded
     chmod 600 "${SSH_ENV}"
     . "${SSH_ENV}" > /dev/null
     /usr/bin/ssh-add;
@@ -66,7 +77,6 @@ function start_agent {
 
 if [ -f "${SSH_ENV}" ]; then
     . "${SSH_ENV}" > /dev/null
-    #ps ${SSH_AGENT_PID} doesn't work under cywgin
     ps -ef | grep ${SSH_AGENT_PID} | grep ssh-agent$ > /dev/null || {
         start_agent;
     }
@@ -75,3 +85,87 @@ else
 fi
 ```
 <a href=http://mah.everybody.org/docs/ssh#run-ssh-agent>Refer this for better explanation</a>
+
+Once ssh-agent has started, then add your private key with ssh-add: `ssh-add ~/.ssh/hadoop`. Now you should be able to do ssh login without requiring to type password.
+
+<h3>Configuring Pseudo-Distributed mode...</h3>
+
+Set JAVA_HOME and HADOOP_HOME in $HADOOP_HOME/etc/hadoop/hadoop-env.sh as well.
+
+**core-site.xml**
+```
+<?xml version="1.0"?>
+<configuration>
+  <property>
+    <name>fs.defaultFS</name>
+    <value>hdfs://localhost/</value>
+  </property>
+</configuration>
+```
+
+**hdfs-site.xml**
+```
+<?xml version="1.0"?>
+<configuration>
+  <property>
+    <name>dfs.replication</name>
+    <value>1</value>
+  </property>
+</configuration>
+```
+
+If you also want to **Mapreduce** to use **YARN** then update following files too.<br>
+**mapred-site.xml**
+```
+<?xml version="1.0"?>
+<configuration>
+  <property>
+    <name>mapreduce.framework.name</name>
+    <value>yarn</value>
+  </property>
+</configuration>
+```
+
+**yarn-site.xml**
+```
+<?xml version="1.0"?>
+<configuration>
+  <property>
+    <name>yarn.resourcemanager.hostname</name>
+    <value>localhost</value>
+  </property>
+  
+  <property>
+    <name>yarn.nodemanager.aux-services</name>
+    <value>mapreduce_shuffle</value>
+  </property>
+</configuration>
+```
+
+<h3>Formatting HDFS filesystem...</h3>
+Before HDFS can be used for the first time, the filesystem must be formatted.<br>
+
+```
+hdfs namenode -format
+```
+<h4>Starting daemons...</h4>
+
+```
+start-dfs.sh
+```
+will start namenode, datanode, secondary namenode daemons. And if you configured mapreduce to use yarn, then:<br>
+```
+start-yarn.sh
+```
+will start resource manager and node manager daemons. 
+```
+mapred historyserver --daemon start
+```
+will start what it's told to 😉. To verify that these daemons are successfully running:
+- Check hadoop logs, or
+- Check if the web interfaces are up: <br>
+ - <a href=http://localhost:9870>http://localhost:9870</a> for the namenode
+ - <a href=http://localhost:8088>http://localhost:8088</a> for the resource manager
+ - <a href=http://localhost:19888>http://localhost:19888</a> for the job history server
+- or, using the `jps` command if you haven't installed only the headless jre
+For stopping the daemons replace *start* with *stop* in all commands.
